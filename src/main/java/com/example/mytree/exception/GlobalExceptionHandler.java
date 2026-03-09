@@ -24,6 +24,26 @@ public class GlobalExceptionHandler {
 		return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
 	}
 
+	@ExceptionHandler(PostNotFoundException.class)
+	public ResponseEntity<ErrorResponse> handlePostNotFound(PostNotFoundException ex) {
+		return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+	}
+
+	@ExceptionHandler(PostDeleteForbiddenException.class)
+	public ResponseEntity<ErrorResponse> handlePostDeleteForbidden(PostDeleteForbiddenException ex) {
+		return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+	}
+
+	@ExceptionHandler(UserDeleteForbiddenException.class)
+	public ResponseEntity<ErrorResponse> handleUserDeleteForbidden(UserDeleteForbiddenException ex) {
+		return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+	}
+
+	@ExceptionHandler(AdminUserDeletionNotAllowedException.class)
+	public ResponseEntity<ErrorResponse> handleAdminUserDeletionNotAllowed(AdminUserDeletionNotAllowedException ex) {
+		return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+	}
+
 	@ExceptionHandler(InvalidCredentialsException.class)
 	public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
 		return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());

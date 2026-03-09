@@ -13,31 +13,33 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import com.example.mytree.domain.User;
 import com.example.mytree.repository.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @SpringBootTest
-@AutoConfigureMockMvc
+@WebAppConfiguration
 class UserApiIntegrationTest {
 
-	@Autowired
 	private MockMvc mockMvc;
 
 	@Autowired
-	private ObjectMapper objectMapper;
+	private WebApplicationContext webApplicationContext;
 
 	@Autowired
 	private UserRepository userRepository;
 
 	@BeforeEach
 	void setUp() {
+		mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
 		userRepository.findAll().forEach(user -> userRepository.deleteByUserId(user.getUserId()));
+		userRepository.insert(new User("admin", "963963", "관리자", LocalDateTime.now(), "127.0.0.1"));
 	}
 
 	@Test
@@ -46,7 +48,7 @@ class UserApiIntegrationTest {
 			{
 			  "userId": "hong01",
 			  "password": "pw1234",
-			  "name": "홍길동"
+			  "name": "hong-user"
 			}
 			""";
 
@@ -59,7 +61,7 @@ class UserApiIntegrationTest {
 				}))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.userId").value("hong01"))
-			.andExpect(jsonPath("$.name").value("홍길동"))
+			.andExpect(jsonPath("$.name").value("hong-user"))
 			.andExpect(jsonPath("$.ipAddress").value("127.0.0.1"));
 
 		User savedUser = userRepository.findByUserId("hong01");
@@ -88,6 +90,30 @@ class UserApiIntegrationTest {
 	}
 
 	@Test
+	void adminCanDeleteUserButNotAdminAccount() throws Exception {
+		userRepository.insert(new User("crud01", "pw1234", "initial-name", LocalDateTime.now(), "127.0.0.1"));
+
+		mockMvc.perform(delete("/api/users/crud01").queryParam("requesterUserId", "admin"))
+			.andExpect(status().isNoContent());
+
+		assertThat(userRepository.findByUserId("crud01")).isNull();
+
+		mockMvc.perform(delete("/api/users/admin").queryParam("requesterUserId", "admin"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.message").value("The admin account cannot be deleted."));
+	}
+
+	@Test
+	void nonAdminCannotDeleteUser() throws Exception {
+		userRepository.insert(new User("member01", "pw1234", "member", LocalDateTime.now(), "127.0.0.1"));
+		userRepository.insert(new User("member02", "pw1234", "member-two", LocalDateTime.now(), "127.0.0.1"));
+
+		mockMvc.perform(delete("/api/users/member02").queryParam("requesterUserId", "member01"))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.message").value("User member01 cannot delete user: member02"));
+	}
+
+	@Test
 	void userCrudLifecycleWorks() throws Exception {
 		mockMvc.perform(post("/api/users/signup")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -95,7 +121,7 @@ class UserApiIntegrationTest {
 					{
 					  "userId": "crud01",
 					  "password": "pw1234",
-					  "name": "초기이름"
+					  "name": "initial-name"
 					}
 					""")
 				.with(request -> {
@@ -107,26 +133,21 @@ class UserApiIntegrationTest {
 		mockMvc.perform(get("/api/users/crud01"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.userId").value("crud01"))
-			.andExpect(jsonPath("$.name").value("초기이름"));
+			.andExpect(jsonPath("$.name").value("initial-name"));
 
 		mockMvc.perform(put("/api/users/crud01")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 					{
 					  "password": "newpw1234",
-					  "name": "수정이름"
+					  "name": "updated-name"
 					}
 					"""))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.name").value("수정이름"));
+			.andExpect(jsonPath("$.name").value("updated-name"));
 
 		mockMvc.perform(get("/api/users"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$[0].userId").value("crud01"));
-
-		mockMvc.perform(delete("/api/users/crud01"))
-			.andExpect(status().isNoContent());
-
-		assertThat(userRepository.findByUserId("crud01")).isNull();
 	}
 }

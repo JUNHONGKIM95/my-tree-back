@@ -12,14 +12,18 @@ import com.example.mytree.dto.LoginRequest;
 import com.example.mytree.dto.SignUpRequest;
 import com.example.mytree.dto.UpdateUserRequest;
 import com.example.mytree.dto.UserResponse;
+import com.example.mytree.exception.AdminUserDeletionNotAllowedException;
 import com.example.mytree.exception.DuplicateUserIdException;
 import com.example.mytree.exception.InvalidCredentialsException;
+import com.example.mytree.exception.UserDeleteForbiddenException;
 import com.example.mytree.exception.UserNotFoundException;
 import com.example.mytree.repository.UserRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class UserService {
+
+	private static final String ADMIN_USER_ID = "admin";
 
 	private final UserRepository userRepository;
 	private final Clock clock;
@@ -77,7 +81,23 @@ public class UserService {
 	}
 
 	@Transactional
-	public void deleteUser(String userId) {
+	public void deleteUser(String userId, String requesterUserId) {
+		if (requesterUserId == null || requesterUserId.isBlank()) {
+			throw new UserNotFoundException("unknown");
+		}
+
+		if (userRepository.findByUserId(requesterUserId) == null) {
+			throw new UserNotFoundException(requesterUserId);
+		}
+
+		if (!ADMIN_USER_ID.equals(requesterUserId)) {
+			throw new UserDeleteForbiddenException(requesterUserId, userId);
+		}
+
+		if (ADMIN_USER_ID.equals(userId)) {
+			throw new AdminUserDeletionNotAllowedException();
+		}
+
 		if (userRepository.deleteByUserId(userId) == 0) {
 			throw new UserNotFoundException(userId);
 		}

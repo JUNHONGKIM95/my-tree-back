@@ -1,4 +1,6 @@
+DROP TABLE IF EXISTS posts;
 DROP TABLE IF EXISTS users;
+DROP SEQUENCE IF EXISTS SEQ_POST_NO;
 
 CREATE TABLE users (
   user_id VARCHAR2(50) PRIMARY KEY,
@@ -6,4 +8,28 @@ CREATE TABLE users (
   name VARCHAR2(50) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   ip_address VARCHAR2(50) NOT NULL
+);
+
+INSERT INTO users (
+  user_id,
+  password,
+  name,
+  created_at,
+  ip_address
+) VALUES (
+  'admin',
+  '963963',
+  '관리자',
+  CURRENT_TIMESTAMP,
+  '127.0.0.1'
+);
+
+CREATE SEQUENCE SEQ_POST_NO START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE posts (
+  post_no NUMBER PRIMARY KEY,
+  user_id VARCHAR2(50) NOT NULL,
+  title VARCHAR2(150) NOT NULL,
+  content VARCHAR2(4000) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

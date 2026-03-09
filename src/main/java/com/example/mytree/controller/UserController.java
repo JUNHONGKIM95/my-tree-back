@@ -11,9 +11,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.mytree.dto.DeleteUserRequest;
 import com.example.mytree.config.IpAddressResolver;
 import com.example.mytree.dto.LoginRequest;
 import com.example.mytree.dto.SignUpRequest;
@@ -70,8 +73,21 @@ public class UserController {
 	}
 
 	@DeleteMapping("/{userId}")
-	public ResponseEntity<Void> deleteUser(@PathVariable String userId) {
-		userService.deleteUser(userId);
+	public ResponseEntity<Void> deleteUser(
+		@PathVariable String userId,
+		@RequestParam(required = false) String requesterUserId,
+		@RequestHeader(name = "X-Requester-User-Id", required = false) String requesterUserIdHeader,
+		@RequestBody(required = false) DeleteUserRequest request
+	) {
+		String resolvedRequesterUserId = requesterUserId;
+		if (resolvedRequesterUserId == null || resolvedRequesterUserId.isBlank()) {
+			resolvedRequesterUserId = requesterUserIdHeader;
+		}
+		if ((resolvedRequesterUserId == null || resolvedRequesterUserId.isBlank()) && request != null) {
+			resolvedRequesterUserId = request.requesterUserId();
+		}
+
+		userService.deleteUser(userId, resolvedRequesterUserId);
 		return ResponseEntity.noContent().build();
 	}
 }
