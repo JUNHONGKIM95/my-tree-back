@@ -1,0 +1,7 @@
+CREATE TABLE users (
+  user_id VARCHAR2(50) PRIMARY KEY,
+  password VARCHAR2(255) NOT NULL,
+  name VARCHAR2(50) NOT NULL,
+  created_at DATE DEFAULT SYSDATE NOT NULL,
+  ip_address VARCHAR2(50) NOT NULL
+);
